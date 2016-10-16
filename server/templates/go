@@ -1,0 +1,14 @@
+package mybot
+
+import (
+	"log"
+
+	"github.com/codegp/gametypebuilder/api"
+)
+
+func Run(apiClient *api.APIClient) {
+	log.Println("Start Turn")
+	bot, err := apiClient.Me()
+	log.Printf("Current bot: %v\nerr: %v", bot, err)
+	log.Println("End Turn")
+}

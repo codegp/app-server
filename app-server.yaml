@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: app-server-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-server
+    spec:
+      containers:
+      - name: app-server
+        image: local/codegp/app-server
+        imagePullPolicy: Always
+        env:
+        - name: GCLOUD_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: codegp-config
+              key: gcloud-project-id
+        - name: IS_LOCAL
+          valueFrom:
+            configMapKeyRef:
+              name: codegp-config
+              key: is-local
+        - name: DATASTORE_EMULATOR_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: codegp-config
+              key: datastore-emulator-host
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - mountPath: /localstore
+          name: localstore-volume
+          readOnly: false
+      volumes:
+      - name: localstore-volume
+        hostPath:
+          # directory location on host
+          path: /localstore

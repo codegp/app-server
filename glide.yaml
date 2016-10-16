@@ -1,0 +1,24 @@
+package: github.com/codegp/app-server
+import:
+- package: github.com/Sirupsen/logrus
+- package: github.com/codegp/cloud-persister
+  subpackages:
+  - models
+- package: github.com/codegp/env
+- package: github.com/codegp/game-object-types
+  subpackages:
+  - types
+- package: github.com/codegp/kube-client
+- package: github.com/gorilla/mux
+- package: github.com/gorilla/sessions
+- package: github.com/nfnt/resize
+- package: github.com/satori/go.uuid
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: golang.org/x/oauth2
+  subpackages:
+  - google
+- package: google.golang.org/api
+  subpackages:
+  - plus/v1
