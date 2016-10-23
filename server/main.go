@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/codegp/cloud-persister"
 	"github.com/Sirupsen/logrus"
+	"github.com/codegp/cloud-persister"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"

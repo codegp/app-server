@@ -3,7 +3,7 @@ package mybot
 import (
 	"log"
 
-	"github.com/codegp/gametypebuilder/api"
+	"botrunner/api"
 )
 
 func Run(apiClient *api.APIClient) {
