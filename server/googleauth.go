@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"os"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
 	"github.com/satori/go.uuid"
 	"google.golang.org/api/plus/v1"
@@ -55,7 +57,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) *requestError {
 	// Use the session ID for the "state" parameter.
 	// This protects against CSRF (cross-site request forgery).
 	// See https://godoc.org/golang.org/x/oauth2#Config.AuthCodeURL for more detail.
-	url := oAuthConfig.AuthCodeURL(sessionID, oauth2.ApprovalForce,
+	url := googleOAuthConfig.AuthCodeURL(sessionID, oauth2.ApprovalForce,
 		oauth2.AccessTypeOnline)
 	http.Redirect(w, r, url, http.StatusFound)
 	return nil
@@ -96,7 +98,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) *requestError 
 	}
 
 	code := r.FormValue("code")
-	tok, err := oAuthConfig.Exchange(context.Background(), code)
+	tok, err := googleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		return requestErrorf(err, "could not get auth token: %v", err)
 	}
@@ -119,6 +121,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) *requestError 
 		return requestErrorf(err, "could not save session: %v", err)
 	}
 
+	logger.Infof("Logged in as google user: %v\n", profile)
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 	return nil
 }
@@ -126,7 +129,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) *requestError 
 // fetchProfile retrieves the Google+ profile of the user associated with the
 // provided OAuth token.
 func fetchProfile(ctx context.Context, tok *oauth2.Token) (*plus.Person, error) {
-	client := oauth2.NewClient(ctx, oAuthConfig.TokenSource(ctx, tok))
+	client := oauth2.NewClient(ctx, googleOAuthConfig.TokenSource(ctx, tok))
 	plusService, err := plus.New(client)
 	if err != nil {
 		return nil, err
@@ -169,7 +172,6 @@ func profileFromSession(r *http.Request) *plus.Person {
 	}
 	return profile
 }
-
 // stripProfile returns a subset of a plus.Person.
 func stripProfile(p *plus.Person) *plus.Person {
 	return &plus.Person{
@@ -179,5 +181,22 @@ func stripProfile(p *plus.Person) *plus.Person {
 		Etag:        p.Etag,
 		Name:        p.Name,
 		Url:         p.Url,
+	}
+}
+
+func configureGoogleOAuthClient() *oauth2.Config {
+	redirectURL := os.Getenv("GOOGLE_OAUTH2_CALLBACK")
+	clientID := os.Getenv("GOOGLE_CLIENT_ID")
+	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+
+	if redirectURL == "" || clientID == "" || clientSecret == "" {
+		logger.Fatal("OAuth2 environment variables not found!")
+	}
+	return &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
+		Scopes:       []string{"email", "profile"},
+		Endpoint:     google.Endpoint,
 	}
 }

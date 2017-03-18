@@ -19,6 +19,10 @@ import:
 - package: golang.org/x/oauth2
   subpackages:
   - google
+  - github
 - package: google.golang.org/api
   subpackages:
   - plus/v1
+- package: github.com/google/go-github
+  subpackages:
+  - github

@@ -32,6 +32,10 @@ func PostMap(w http.ResponseWriter, r *http.Request) *requestError {
 	}
 
 	gameType.MapIDs = append(gameType.MapIDs, m.ID)
+	err = cp.UpdateGameType(gameType)
+	if err != nil {
+		return requestErrorf(err, "Error adding map id to gametype")
+	}
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)

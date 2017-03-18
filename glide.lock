@@ -1,5 +1,5 @@
-hash: 6e45dafdcd608b6ac00bf7f86fc8cda6456af740e9585c5feecff636ce70abbf
-updated: 2016-10-16T12:00:11.450804289-06:00
+hash: 49bee0ff4c7503a4b6dd43549d5a18e6e344da45796478a754160ff3c49d46c9
+updated: 2016-10-29T14:53:33.691891918-06:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -9,23 +9,23 @@ imports:
   - compute/metadata
   - internal
 - name: git.apache.org/thrift.git
-  version: af81cf0c6180cda4791e023a37ad134247fa7794
+  version: 59cb6661bcee265d39ad524154472ebe27760f1e
   subpackages:
   - lib/go/thrift
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
 - name: github.com/codegp/cloud-persister
-  version: f32b964c7d7bb389701be9d4c769b7ff9e71014a
+  version: 23b8263a4676fa593cefd96e8ce6b8cfa682d53a
   subpackages:
   - models
 - name: github.com/codegp/env
-  version: 336f55c547ee75bb1941c9e5bf4dda6586332224
+  version: 995611706bf3d9a4cff43cd004fd44919493995f
 - name: github.com/codegp/game-object-types
-  version: f4be21842bbbce5f419ba44aada8778723e8205b
+  version: 2a3c7fd5f280683c6c4e56f04ddbe202c4ccdb6e
   subpackages:
   - types
 - name: github.com/codegp/kube-client
-  version: 7dc023beb154d29c246e75bc182d920b3d875519
+  version: 06e43dbcf8f06134b00e0433e1d15b5947dc875a
 - name: github.com/coreos/go-oidc
   version: 5644a2f50e2d2d5ba0b474bc5bc55fea1925936d
   subpackages:
@@ -148,6 +148,14 @@ imports:
   - utils/tail
   - validate
   - version
+- name: github.com/google/go-github
+  version: f7fcf6f52ff94adf1cc0ded41e7768d2ad729972
+  subpackages:
+  - github
+- name: github.com/google/go-querystring
+  version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
+  subpackages:
+  - query
 - name: github.com/google/gofuzz
   version: bbcb9da2d746f8bdbd6a936686a0a6067ada0ec5
 - name: github.com/gorilla/context
@@ -199,14 +207,15 @@ imports:
   - internal/timeseries
   - idna
 - name: golang.org/x/oauth2
-  version: 1e695b1c8febf17aad3bfa7bf0a819ef94b98ad5
+  version: 25b4fb1468cb89700c7c060cb99f30581a61f5e3
   subpackages:
   - google
+  - github
   - internal
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 9bb9f0998d48b31547d975974935ae9b48c7a03c
+  version: c200b10b5d5e122be351b67af224adc6128af5bf
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -275,7 +284,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/kubernetes
-  version: 712d3d2cd3abe3bf862f813c0969f04d2454afb2
+  version: 8b6cebcb3532413085252f6148629f6c66de3adb
   subpackages:
   - pkg/api
   - pkg/api/unversioned

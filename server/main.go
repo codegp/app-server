@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/codegp/cloud-persister"
@@ -11,17 +12,18 @@ import (
 	"github.com/gorilla/sessions"
 
 	"github.com/codegp/env"
-	"github.com/codegp/kube-client"
+	orch "github.com/codegp/job-client"
+	"github.com/codegp/job-client/jobclient"
 	"golang.org/x/oauth2"
 )
 
 var (
-	cp           *cloudpersister.CloudPersister
-	kc           *kubeclient.KubeClient
-	isLocal      bool
-	oAuthConfig  *oauth2.Config
-	sessionStore sessions.Store
-	logger       *logrus.Logger
+	cp                *cloudpersister.CloudPersister
+	kc                jobclient.JobClient
+	googleOAuthConfig *oauth2.Config
+	githubOAuthConfig *oauth2.Config
+	sessionStore      sessions.Store
+	logger            *logrus.Logger
 )
 
 func init() {
@@ -29,18 +31,25 @@ func init() {
 	logger = logrus.New()
 	logger.Out = os.Stderr
 	logger.Infof("ENV %s %v %s", env.GCloudProjectID(), env.IsLocal(), os.Getenv("DATASTORE_EMULATOR_HOST"))
-	cp, err = cloudpersister.NewCloudPersister()
-	if err != nil {
-		logger.Fatalf("Failed to start cloud persister: %v", err)
+
+	for {
+		cp, err = cloudpersister.NewCloudPersister()
+		if err == nil || !env.IsLocal() {
+			break
+		}
+
+		logger.Errorf("Failed to create cloud persister. Confirm DSEmulator is running.\nError: %v", err)
+		time.Sleep(time.Millisecond * time.Duration(1000))
 	}
 
-	kc, err = kubeclient.NewClient()
+	kc, err = orch.GetJobClient()
 	if err != nil {
-		logger.Fatalf("Failed to start kube client: %v", err)
+		logger.Fatalf("Failed to start mikube client: %v", err)
 	}
 
 	if !env.IsLocal() {
-		oAuthConfig = configureOAuthClient()
+		googleOAuthConfig = configureGoogleOAuthClient()
+		githubOAuthConfig = configureGithubOAuthClient()
 		// TODO get better secret
 		cookieStore := sessions.NewCookieStore([]byte("something-very-secret"))
 		cookieStore.Options = &sessions.Options{
@@ -55,6 +64,7 @@ func main() {
 	apiRouter := baseRouter.PathPrefix("/console").Subrouter()
 
 	apiRouter.HandleFunc("/user", sessionMiddleware(GetUser)).Methods("GET")
+	apiRouter.HandleFunc("/initialData", sessionMiddleware(GetInitialData)).Methods("GET")
 
 	apiRouter.HandleFunc("/project/{projectID}", sessionMiddleware(GetProject)).Methods("GET")
 	apiRouter.HandleFunc("/project", sessionMiddleware(PostProject)).Methods("POST")
@@ -104,6 +114,11 @@ func main() {
 	baseRouter.HandleFunc("/login", errorMiddleware(loginHandler)).Methods("GET")
 	baseRouter.HandleFunc("/logout", errorMiddleware(logoutHandler)).Methods("POST")
 	baseRouter.HandleFunc("/oauth2callback", errorMiddleware(oauthCallbackHandler)).Methods("GET")
+
+	baseRouter.HandleFunc("/githublogin", errorMiddleware(handleGitHubLogin)).Methods("GET")
+	// baseRouter.HandleFunc("/githublogout", errorMiddleware(logoutHandler)).Methods("POST")
+	baseRouter.HandleFunc("/githuboauth2callback", errorMiddleware(handleGitHubCallback)).Methods("GET")
+
 	// baseRouter.HandleFunc("/{rest:.*}", ServeDistFile)
 
 	http.Handle("/", &AppServer{baseRouter})

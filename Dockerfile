@@ -1,4 +1,5 @@
 FROM alpine
+RUN apk --update add ca-certificates
 RUN mkdir /server
 
 COPY server/server /server/server

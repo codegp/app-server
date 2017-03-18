@@ -24,28 +24,21 @@ func GetGame(w http.ResponseWriter, r *http.Request) *requestError {
 }
 
 func PostGame(w http.ResponseWriter, r *http.Request) *requestError {
-	projectID, rerr := readIDFromRequest(r, "projectID")
-	if rerr != nil {
-		return rerr
-	}
-
-	proj, err := cp.GetProject(projectID)
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return requestErrorf(err, "Error getting project from datastore")
-	}
-
-	mapID, rerr := readIDFromRequest(r, "mapID")
-	if rerr != nil {
-		return rerr
+		return requestErrorf(err, "Error unmarshalling itemType")
 	}
 
 	// TODO: if gametype.numteams > 1 find competitors
 	game := &models.Game{
-		MapID:      mapID,
-		ProjectIDs: []int64{proj.ID},
-		Created:    time.Now(),
-		GameTypeID: proj.GameTypeID,
-		Complete:   false,
+		Created:  time.Now(),
+		Complete: false,
+	}
+
+	err = json.Unmarshal(body, game)
+	if err != nil {
+		return requestErrorf(err, "Error unmarshalling game")
 	}
 
 	game, err = cp.AddGame(game)
@@ -53,14 +46,23 @@ func PostGame(w http.ResponseWriter, r *http.Request) *requestError {
 		return requestErrorf(err, "Error adding game to datastore")
 	}
 
-	_, err = kc.StartGame(game)
+	projects, err := cp.GetMultiProject(game.ProjectIDs)
+	if err != nil {
+		return requestErrorf(err, "Error getting projects from datastore")
+	}
+
+	_, err = kc.StartGame(game, projects)
 	if err != nil {
 		return requestErrorf(err, "Error starting game pod")
 	}
 
-	proj.GameIDs = append(proj.GameIDs, game.ID)
-	if cp.UpdateProject(proj) != nil {
-		return requestErrorf(err, "Error updating project")
+	for _, proj := range projects {
+		proj.GameIDs = append(proj.GameIDs, game.ID)
+
+		// TODO: put multi
+		if cp.UpdateProject(proj) != nil {
+			return requestErrorf(err, "Error updating project")
+		}
 	}
 
 	return marshalAndWriteResponse(w, game)

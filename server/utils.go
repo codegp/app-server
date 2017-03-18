@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/codegp/cloud-persister/models"
 	"github.com/codegp/env"
 	"github.com/gorilla/mux"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 type requestHandler func(http.ResponseWriter, *http.Request) *requestError
@@ -31,7 +28,7 @@ func requestErrorf(err error, format string, v ...interface{}) *requestError {
 
 func sessionMiddleware(h requestHandler) func(http.ResponseWriter, *http.Request) {
 	return (func(w http.ResponseWriter, r *http.Request) {
-		if !env.IsLocal() && profileFromSession(r) == nil {
+		if !env.IsLocal() && profileFromSession(r) == nil && githubUserFromSession(r) == nil {
 			http.Error(w, "Please go to the splash page and login", http.StatusUnauthorized)
 			return
 		}
@@ -75,42 +72,32 @@ func marshalAndWriteResponse(w http.ResponseWriter, toMarshal interface{}) *requ
 	return nil
 }
 
-func configureOAuthClient() *oauth2.Config {
-	redirectURL := os.Getenv("OAUTH2_CALLBACK")
-	clientID := os.Getenv("CLIENT_ID")
-	clientSecret := os.Getenv("CLIENT_SECRET")
-
-	if redirectURL == "" || clientID == "" || clientSecret == "" {
-		logger.Fatal("OAuth2 environment variables not found!")
-	}
-	return &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
-		Scopes:       []string{"email", "profile"},
-		Endpoint:     google.Endpoint,
-	}
-}
-
 func getUserFromContext(r *http.Request) (*models.User, error) {
-	var ID int64
-	var err error
 	if env.IsLocal() {
 		// if local use a generic user
-		ID = 12345
-	} else {
-		// get the profile info from the users session
-		profile := profileFromSession(r)
-		if profile == nil {
-			return nil, fmt.Errorf("No profile found in session")
-		}
+		return getUserByID(12345)
+	}
 
-		ID, err = strconv.ParseInt(profile.Id[2:], 10, 64)
+	// get the profile info from the users session
+	profile := profileFromSession(r)
+	if profile != nil {
+		ID, err := strconv.ParseInt(profile.Id[2:], 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing google+ profile ID: %v", err)
 		}
+
+		return getUserByID(ID)
 	}
 
+	ghUser := githubUserFromSession(r)
+	if ghUser != nil {
+		return getUserByID(int64(*ghUser.ID))
+	}
+
+	return nil, fmt.Errorf("No profiles found in session")
+}
+
+func getUserByID(ID int64) (*models.User, error) {
 	user, err := cp.GetUser(ID)
 	logger.Infof("user %v\nerr %v", user, err)
 	if err != nil {
